@@ -84,4 +84,4 @@ dialog .titlebar{height:30px}
 .guide-body .standard{display:block;margin-left:auto}
 @media(max-width:760px){.palette-bar{flex-wrap:wrap}.placement{margin-left:auto}#palette{grid-template-columns:repeat(16,min(4.9vw,24px))}.current{width:38px}.colors{gap:6px}}
 @media(max-width:570px){.navigator{width:138px;right:6px;bottom:6px}.navigator summary{min-height:24px}.tools{gap:4px;padding:5px}.group+.group{padding-left:4px}.tools button{padding:0 5px}.palette-bar{padding:8px;gap:7px}.colors{width:100%}#palette{flex:1;grid-template-columns:repeat(16,minmax(0,1fr));grid-template-rows:repeat(2,22px)}.placement{width:100%;justify-content:space-between}footer>span{padding:0 5px}.coords{min-width:65px}.workspace{grid-template-columns:20px minmax(0,1fr)}}
-@media(max-width:355px){.titlebar{gap:4px}.title-links a{padding-inline:4px}.icon{width:14px}.tools button{gap:2px}#zoom-value{min-width:35px}}
+@media(max-width:355px){.titlebar{gap:4px}.titlebar .brand{display:none}.title-links a{padding-inline:4px}.icon{width:14px}.tools button{gap:2px}#zoom-value{min-width:35px}}
