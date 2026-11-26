@@ -6,6 +6,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:net';
+import { randomUUID } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
 import { PREVIEW, SIZE, initialRow } from '../public/board.js';
 
@@ -18,9 +19,10 @@ async function freePort() {
   return port;
 }
 
-async function startWorker(port, storage) {
+async function startWorker(port, storage, rateLimit) {
+  const vars = rateLimit ? ['--var', 'PIXEL_RATE_LIMIT:' + rateLimit] : [];
   const proc = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev',
-    '--local', '--ip', '127.0.0.1', '--port', String(port), '--persist-to', storage],
+    '--local', '--ip', '127.0.0.1', '--port', String(port), '--persist-to', storage, ...vars],
     { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } });
   let log = '';
   proc.stdout.on('data', chunk => { log += chunk; });
@@ -44,8 +46,9 @@ async function startWorker(port, storage) {
   throw new Error('Local Worker failed to start. ' + log);
 }
 
-function client(port, path = "live") {
-  const ws = new WebSocket('ws://127.0.0.1:' + port + '/api/' + path);
+function client(port, path = 'live', id) {
+  const headers = id ? { Cookie: 'canvas_browser=' + id } : {};
+  const ws = new WebSocket('ws://127.0.0.1:' + port + '/api/' + path, { headers });
   ws.binaryType = 'arraybuffer';
   const messages = [];
   const readers = [];
@@ -62,12 +65,12 @@ function client(port, path = "live") {
   };
 }
 
-test('one public board persists updates and shares seven placements per 27-second window', { timeout: 65_000 }, async t => {
+test('IP mode shares seven placements across browsers and persists board and allowance', { timeout: 65_000 }, async t => {
   const storage = await mkdtemp(join(tmpdir(), 'canvas-test-'));
   const port = await freePort();
   let stop;
   const clients = [];
-  const open = () => { const peer = client(port); clients.push(peer); return peer; };
+  const open = () => { const peer = client(port, 'live', randomUUID()); clients.push(peer); return peer; };
   t.after(async () => {
     for (const peer of clients) peer.close();
     if (stop) await stop();
@@ -75,7 +78,7 @@ test('one public board persists updates and shares seven placements per 27-secon
   });
 
   assert.equal(SIZE, 3000);
-  stop = await startWorker(port, storage);
+  stop = await startWorker(port, storage, 'ip');
   const a = open(), b = open();
   for (const peer of [a, b]) {
     assert.deepEqual(await peer.read(), new Uint8Array([2]));
@@ -124,7 +127,7 @@ test('one public board persists updates and shares seven placements per 27-secon
   a.close(); b.close();
 
   await stop();
-  stop = await startWorker(port, storage);
+  stop = await startWorker(port, storage, 'ip');
   const fresh = open();
   const snapshot = await fresh.read();
   assert.equal(snapshot.length, 1 + 2 + SIZE);
@@ -141,6 +144,64 @@ test('one public board persists updates and shares seven placements per 27-secon
   fresh.place(0, 0, 3);
   assert.deepEqual(await fresh.read(), { type: 'pixel', x: 0, y: 0, color: 3 });
   assert.deepEqual(await fresh.read(), { type: 'quota', remaining: 6, wait: 27_000 });
+});
+
+test('browser mode separates allowances on one IP and shares them across tabs and reconnects', { timeout: 15_000 }, async t => {
+  const storage = await mkdtemp(join(tmpdir(), 'canvas-browser-test-'));
+  const port = await freePort();
+  let stop;
+  const clients = [];
+  const open = async id => {
+    const peer = client(port, 'live', id);
+    clients.push(peer);
+    const snapshot = await peer.read();
+    const ready = await peer.read();
+    assert.equal(ready.type, 'ready');
+    return { peer, ready, snapshot };
+  };
+  t.after(async () => {
+    for (const peer of clients) peer.close();
+    if (stop) await stop();
+    await rm(storage, { recursive: true, force: true });
+  });
+
+  stop = await startWorker(port, storage);
+  const firstId = randomUUID(), secondId = randomUUID();
+  const a = (await open(firstId)).peer;
+  const tab = (await open(firstId)).peer;
+  const b = (await open(secondId)).peer;
+  for (let i = 0; i < 7; i++) {
+    a.place(i, 0, 5);
+    const pixel = { type: 'pixel', x: i, y: 0, color: 5 };
+    for (const peer of [a, tab]) {
+      assert.deepEqual(await peer.read(), pixel);
+      const quota = await peer.read();
+      assert.equal(quota.type, 'quota');
+      assert.equal(quota.remaining, 6 - i);
+    }
+    assert.deepEqual(await b.read(), pixel);
+    assert.deepEqual(await a.read(), { type: 'placed' });
+  }
+  tab.place(7, 0, 5);
+  assert.equal((await tab.read()).type, 'limit');
+  assert.equal((await open(firstId)).ready.remaining, 0);
+  b.place(7, 0, 6);
+  assert.deepEqual(await b.read(), { type: 'pixel', x: 7, y: 0, color: 6 });
+  assert.deepEqual(await b.read(), { type: 'quota', remaining: 6, wait: 27_000 });
+
+  const fallback = (await open()).peer;
+  const malformed = (await open('invalid')).peer;
+  fallback.place(8, 0, 6);
+  assert.deepEqual(await malformed.read(), { type: 'pixel', x: 8, y: 0, color: 6 });
+  assert.deepEqual(await malformed.read(), { type: 'quota', remaining: 6, wait: 27_000 });
+
+  for (const peer of clients) peer.close();
+  await stop();
+  stop = await startWorker(port, storage, 'ip');
+  const restored = await open(firstId);
+  assert.equal(restored.ready.remaining, 6);
+  assert.deepEqual(restored.snapshot.slice(3, 12), new Uint8Array([5, 5, 5, 5, 5, 5, 5, 6, 6]));
+  assert.equal((await open(secondId)).ready.remaining, 6);
 });
 
 test('the sidebar receives a cropped snapshot and in-crop updates on a read-only socket', { timeout: 10000 }, async t => {

@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { SIZE, COOLDOWN, PIXELS_PER_TURN, initialRow, palette, PREVIEW } from '../public/board.js';
+import { browserId, SIZE, COOLDOWN, PIXELS_PER_TURN, initialRow, palette, PREVIEW } from '../public/board.js';
 
 export default {
   fetch(request, env) {
@@ -27,6 +27,12 @@ function send(socket, message) {
 export class CanvasBoard extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
+    this.browserLimit = env.PIXEL_RATE_LIMIT === 'browser';
+    this.rateTag = this.browserLimit ? 'rate:browser' : 'rate:ip';
+    const previousRateTag = this.browserLimit ? 'rate:ip' : 'rate:browser';
+    for (const socket of ctx.getWebSockets(previousRateTag)) {
+      socket.close(1012, 'Placement limit changed');
+    }
     this.sql = ctx.storage.sql;
     this.sql.exec('CREATE TABLE IF NOT EXISTS stripes (y INTEGER PRIMARY KEY, pixels BLOB NOT NULL)');
     this.sql.exec('CREATE TABLE IF NOT EXISTS turns (visitor TEXT PRIMARY KEY, until INTEGER NOT NULL, remaining INTEGER NOT NULL)');
@@ -46,10 +52,12 @@ export class CanvasBoard extends DurableObject {
   async fetch(request) {
     if (new URL(request.url).pathname === '/api/preview') return this.preview();
     const address = request.headers.get('CF-Connecting-IP') || 'local';
-    const hash = await crypto.subtle.sign('HMAC', await this.key, new TextEncoder().encode(address));
+    const id = this.browserLimit && browserId(request.headers.get('Cookie') ?? '');
+    const identity = id ? 'browser:' + id : address;
+    const hash = await crypto.subtle.sign('HMAC', await this.key, new TextEncoder().encode(identity));
     const visitor = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
     const [client, server] = Object.values(new WebSocketPair());
-    this.ctx.acceptWebSocket(server, [visitor]);
+    this.ctx.acceptWebSocket(server, [visitor, this.rateTag]);
     server.serializeAttachment(visitor);
 
     // Snapshot and subscription use one synchronous turn, so no edit can fall between them.

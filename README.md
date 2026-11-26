@@ -28,6 +28,8 @@ Wrangler publishes the static site, Worker, and SQLite-backed Durable Object tog
 
 One named Durable Object serializes placements for the whole site. It stores changed rows and each active cooldown in SQLite, then broadcasts each saved pixel over hibernating WebSockets. Reconnecting clients receive a fresh snapshot. The starter artwork and palette indices define the initial board and should remain stable across deployments.
 
-Visitors draw anonymously. The server permits seven changed pixels per public IP address in a 27-second window. The first change starts the window. All seven slots refill together at expiry. Devices sharing a public IP share the allowance. The stored rate-limit key is a keyed hash of the address. Selecting the existing color costs no turn.
+Visitors draw anonymously. The server permits seven changed pixels per browser profile in a 27-second window. Tabs in the same profile share an allowance through a first-party cookie. Visitors who block cookies use the public IP allowance. The first change starts the window, and all seven slots refill together at expiry. Selecting the existing color costs no turn.
+
+To switch every visitor back to the shared public IP limit, set `PIXEL_RATE_LIMIT` to `ip` in the Worker's Variables and Secrets settings or in `wrangler.jsonc`, then deploy. Set it to `browser` to restore browser allowances. Keep the value in `wrangler.jsonc` in sync with any dashboard change for future Wrangler deploys. Both modes use the same board.
 
 Workers Free supports this storage and WebSocket configuration. Traffic above the account's free allowances can temporarily interrupt service. See [Cloudflare's Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/).

@@ -3,6 +3,9 @@ import { island } from './island.js';
 export const SIZE = 3000;
 export const COOLDOWN = 27_000;
 export const PIXELS_PER_TURN = 7;
+export function browserId(cookies) {
+  return /(?:^|;\s*)canvas_browser=([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})(?:;|$)/.exec(cookies)?.[1];
+}
 // Keep each stored index in its original color family when revising swatches.
 export const palette = [
   ['White', '#ffffff'], ['Silver', '#c0c0c0'], ['Gray', '#808080'], ['Black', '#000000'],

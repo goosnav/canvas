@@ -1,4 +1,4 @@
-import { palette, PIXELS_PER_TURN } from './board.js';
+import { browserId, palette, PIXELS_PER_TURN } from './board.js';
 import { canvasPNG, chosen, sameColor, loadSnapshot, setPixel, setInk, viewEvents } from './view.js';
 
 const $ = selector => document.querySelector(selector);
@@ -48,6 +48,14 @@ function setLive(value, message) {
 }
 function connect() {
   clearTimeout(retryTimer);
+  try {
+    if (!browserId(document.cookie) && crypto.randomUUID) {
+      const secure = location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = 'canvas_browser=' + crypto.randomUUID() + '; Path=/; Max-Age=31536000; SameSite=Lax' + secure;
+    }
+  } catch {
+    // Browsers that block cookies use the IP-based allowance.
+  }
   const url = new URL('/api/live', location.href);
   url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const ws = new WebSocket(url);
