@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'node:net';
 import { setTimeout as delay } from 'node:timers/promises';
-import { SIZE } from '../public/board.js';
+import { PREVIEW, SIZE, initialRow } from '../public/board.js';
 
 async function freePort() {
   const server = createServer();
@@ -44,8 +44,8 @@ async function startWorker(port, storage) {
   throw new Error('Local Worker failed to start. ' + log);
 }
 
-function client(port) {
-  const ws = new WebSocket('ws://127.0.0.1:' + port + '/api/live');
+function client(port, path = "live") {
+  const ws = new WebSocket('ws://127.0.0.1:' + port + '/api/' + path);
   ws.binaryType = 'arraybuffer';
   const messages = [];
   const readers = [];
@@ -141,4 +141,41 @@ test('one public board persists updates and shares seven placements per 27-secon
   fresh.place(0, 0, 3);
   assert.deepEqual(await fresh.read(), { type: 'pixel', x: 0, y: 0, color: 3 });
   assert.deepEqual(await fresh.read(), { type: 'quota', remaining: 6, wait: 27_000 });
+});
+
+test('the sidebar receives a cropped snapshot and in-crop updates on a read-only socket', { timeout: 10000 }, async t => {
+  const storage = await mkdtemp(join(tmpdir(), 'canvas-preview-test-'));
+  const port = await freePort();
+  const stop = await startWorker(port, storage);
+  const peers = [];
+  const open = path => {
+    const peer = client(port, path);
+    peers.push(peer);
+    return peer;
+  };
+  t.after(async () => {
+    for (const peer of peers) peer.close();
+    await stop();
+    await rm(storage, { recursive: true, force: true });
+  });
+
+  const editor = open('live'), viewer = open('preview');
+  await editor.read(); await editor.read();
+  const { x, y, width, height } = PREVIEW;
+  const snapshot = await viewer.read();
+  assert.equal(snapshot.length, width * height);
+  const initialColor = initialRow(y)[x];
+  assert.equal(snapshot[0], initialColor);
+
+  editor.place(0, 0, 5);
+  assert.equal((await editor.read()).type, 'pixel');
+  const color = (initialColor + 1) % 32;
+  editor.place(x, y, color);
+  assert.deepEqual(await viewer.read(), { type: 'pixel', x, y, color });
+  assert.equal((await open('preview').read())[0], color);
+
+  const closed = viewer.closed();
+  viewer.place(x, y, initialColor);
+  assert.equal((await closed)[0].code, 1008);
+  assert.equal((await open('preview').read())[0], color);
 });

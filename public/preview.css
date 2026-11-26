@@ -1,0 +1,14 @@
+body {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  margin: 0;
+  background: white;
+  font: 12px Tahoma, sans-serif;
+}
+canvas {
+  width: 100%;
+  height: 100dvh;
+  object-fit: contain;
+  image-rendering: pixelated;
+}

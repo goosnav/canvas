@@ -1,11 +1,11 @@
 import { DurableObject } from 'cloudflare:workers';
-import { SIZE, COOLDOWN, PIXELS_PER_TURN, initialRow, palette } from '../public/board.js';
+import { SIZE, COOLDOWN, PIXELS_PER_TURN, initialRow, palette, PREVIEW } from '../public/board.js';
 
 export default {
   fetch(request, env) {
     const url = new URL(request.url);
     if (!url.pathname.startsWith('/api/')) return env.ASSETS.fetch(request);
-    if (url.pathname !== '/api/live') return new Response('Unknown route', { status: 404 });
+    if (url.pathname !== '/api/live' && url.pathname !== '/api/preview') return new Response('Unknown route', { status: 404 });
     if (request.method !== 'GET' || request.headers.get('Upgrade')?.toLowerCase() !== 'websocket') {
       return new Response('WebSocket required', { status: 426 });
     }
@@ -44,6 +44,7 @@ export class CanvasBoard extends DurableObject {
   }
 
   async fetch(request) {
+    if (new URL(request.url).pathname === '/api/preview') return this.preview();
     const address = request.headers.get('CF-Connecting-IP') || 'local';
     const hash = await crypto.subtle.sign('HMAC', await this.key, new TextEncoder().encode(address));
     const visitor = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
@@ -71,7 +72,24 @@ export class CanvasBoard extends DurableObject {
     return new Response(null, { status: 101, webSocket: client });
   }
 
+  preview() {
+    const { x, y, width, height } = PREVIEW;
+    const saved = new Map([...this.sql.exec('SELECT y,pixels FROM stripes WHERE y >= ? AND y < ?', y, y + height)]
+      .map(row => [row.y, new Uint8Array(row.pixels)]));
+    const pixels = new Uint8Array(width * height);
+    for (let offset = 0; offset < height; offset++) {
+      const row = saved.get(y + offset) ?? initialRow(y + offset);
+      pixels.set(row.subarray(x, x + width), offset * width);
+    }
+    const [client, server] = Object.values(new WebSocketPair());
+    this.ctx.acceptWebSocket(server, ['preview']);
+    server.send(pixels);
+    return new Response(null, { status: 101, webSocket: client });
+  }
+
   webSocketMessage(socket, data) {
+    const visitor = socket.deserializeAttachment();
+    if (!visitor) return socket.close(1008, 'Read-only preview');
     if (typeof data !== 'string' || data.length > 128) return socket.close(1008, 'Invalid placement');
     let move;
     try { move = JSON.parse(data); } catch { return socket.close(1008, 'Invalid JSON'); }
@@ -79,7 +97,6 @@ export class CanvasBoard extends DurableObject {
     if (![x, y, color].every(Number.isInteger) || x < 0 || y < 0 || x >= SIZE || y >= SIZE ||
         color < 0 || color >= palette.length) return socket.close(1008, 'Invalid pixel');
 
-    const visitor = socket.deserializeAttachment();
     const now = Date.now();
     const quota = this.allowance(visitor, now);
     if (!quota.remaining) return send(socket, JSON.stringify({ type: 'limit', ...quota }));
@@ -97,7 +114,11 @@ export class CanvasBoard extends DurableObject {
     });
 
     const pixel = JSON.stringify({ type: 'pixel', x, y, color });
-    for (const peer of this.ctx.getWebSockets()) send(peer, pixel);
+    const inPreview = x >= PREVIEW.x && x < PREVIEW.x + PREVIEW.width &&
+      y >= PREVIEW.y && y < PREVIEW.y + PREVIEW.height;
+    for (const peer of this.ctx.getWebSockets()) {
+      if (inPreview || !this.ctx.getTags(peer).includes('preview')) send(peer, pixel);
+    }
     for (const peer of this.ctx.getWebSockets(visitor)) {
       send(peer, JSON.stringify({ type: 'quota', remaining, wait }));
     }

@@ -22,3 +22,6 @@ export function initialRow(y) {
   }
   return row;
 }
+
+// Keep the sidebar at pixel-art scale around the starter island.
+export const PREVIEW = { x: 1428, y: 1450, width: 144, height: 100 };
