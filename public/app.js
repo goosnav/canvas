@@ -1,10 +1,12 @@
 import { palette, PIXELS_PER_TURN } from './board.js';
-import { chosen, sameColor, loadSnapshot, setPixel, setInk, viewEvents } from './view.js';
+import { canvasPNG, chosen, sameColor, loadSnapshot, setPixel, setInk, viewEvents } from './view.js';
 
 const $ = selector => document.querySelector(selector);
 const placementHint = matchMedia('(pointer: coarse)').matches ? 'Double-tap a pixel' : 'Double-click a pixel';
 const place = $('#place'), hint = $('#hint'), connection = $('#connection');
+const save = $('#save');
 let ink = 3, live = false, deadline = 0, pending = false, retry = 500;
+let saving = false;
 let available = PIXELS_PER_TURN;
 let socket, responseTimer, retryTimer, tick;
 const swatches = palette.map(([name, hex], index) => {
@@ -38,6 +40,7 @@ function update() {
 }
 function setLive(value, message) {
   live = value;
+  save.disabled = !live || saving;
   connection.classList.toggle('live', value);
   connection.lastElementChild.textContent = message;
   update();
@@ -88,6 +91,28 @@ function placePixel() {
   responseTimer = setTimeout(() => socket.close(4000, 'Refresh placement'), 8000);
 }
 place.onclick = placePixel;
+save.onclick = async () => {
+  saving = true;
+  save.disabled = true;
+  save.textContent = 'Saving…';
+  try {
+    const png = await canvasPNG();
+    const url = URL.createObjectURL(png);
+    const download = document.createElement('a');
+    download.href = url;
+    download.download = 'goosnav-canvas.png';
+    document.body.append(download);
+    download.click();
+    download.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    save.textContent = 'Save PNG';
+  } catch {
+    save.textContent = 'Retry PNG';
+  } finally {
+    saving = false;
+    save.disabled = !live;
+  }
+};
 viewEvents.addEventListener('place', placePixel);
 viewEvents.addEventListener('selection', update);
 $('#help').onclick = () => $('#guide').showModal();

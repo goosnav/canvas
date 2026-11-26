@@ -65,6 +65,14 @@ export function setPixel({ x, y, color }) {
   paint.fillRect(x, y, 1, 1);
   revision++; invalidate();
 }
+export function canvasPNG() {
+  return new Promise((resolve, reject) => {
+    bitmap.toBlob(blob => {
+      if (blob) resolve(blob);
+      else reject(new Error('Could not encode the canvas'));
+    }, 'image/png');
+  });
+}
 export function chosen() { return selected; }
 export function sameColor() { return selected && pixels[selected.y * SIZE + selected.x] === ink; }
 export function setInk(color) { ink = color; invalidate(); }
