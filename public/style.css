@@ -11,7 +11,7 @@ button:disabled{cursor:default}
 .titlebar img,.icon{image-rendering:pixelated}
 h1{margin:0;font:bold 11px/1.45 "Pixel Tahoma",Tahoma,Verdana,sans-serif;text-shadow:1px 1px #163b88}
 .title-links{display:flex;gap:3px;margin-left:auto}
-.title-links a{display:inline-flex;align-items:center;gap:4px;height:23px;padding:0 6px;color:#fff;text-decoration:none;white-space:nowrap;border:1px solid #0c2f86;border-radius:3px;background:linear-gradient(#5b9bfa,#3a81f3 12%,#1f5fd8 88%,#1a4fc0);box-shadow:inset 1px 1px #8fbcff;text-shadow:1px 1px #0a1f7a}
+.title-links a{display:inline-flex;align-items:center;justify-content:center;width:30px;height:23px;border:1px solid #0c2f86;border-radius:3px;background:linear-gradient(#5b9bfa,#3a81f3 12%,#1f5fd8 88%,#1a4fc0);box-shadow:inset 1px 1px #8fbcff}
 .title-links a:hover{background:linear-gradient(#7db2ff,#4e93fb 12%,#2f71e6 88%,#2560d6)}
 .title-links a:focus-visible{outline:1px dotted #fff;outline-offset:-3px}
 .title-button{margin-left:auto;width:23px;height:23px;border:1px solid #fff;border-radius:3px;background:linear-gradient(135deg,#80aeff,#3679e8 55%,#1254cf);box-shadow:inset 0 0 0 1px #92bafd80;color:white;font:bold 15px Tahoma,sans-serif}
@@ -84,4 +84,4 @@ dialog .titlebar{height:30px}
 .guide-body .standard{display:block;margin-left:auto}
 @media(max-width:760px){.palette-bar{flex-wrap:wrap}.placement{margin-left:auto}#palette{grid-template-columns:repeat(16,min(4.9vw,24px))}.current{width:38px}.colors{gap:6px}}
 @media(max-width:570px){.navigator{width:138px;right:6px;bottom:6px}.navigator summary{min-height:24px}.tools{gap:4px;padding:5px}.group+.group{padding-left:4px}.tools button{padding:0 5px}.palette-bar{padding:8px;gap:7px}.colors{width:100%}#palette{flex:1;grid-template-columns:repeat(16,minmax(0,1fr));grid-template-rows:repeat(2,22px)}.placement{width:100%;justify-content:space-between}footer>span{padding:0 5px}.coords{min-width:65px}.workspace{grid-template-columns:20px minmax(0,1fr)}}
-@media(max-width:355px){.titlebar{gap:4px}.titlebar .brand{display:none}.title-links a{padding-inline:4px}.icon{width:14px}.tools button{gap:2px}#zoom-value{min-width:35px}}
+@media(max-width:355px){.titlebar{gap:4px}.icon{width:14px}.tools button{gap:2px}#zoom-value{min-width:35px}}
