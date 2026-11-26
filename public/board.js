@@ -3,16 +3,16 @@ import { island } from './island.js';
 export const SIZE = 3000;
 export const COOLDOWN = 27_000;
 export const PIXELS_PER_TURN = 7;
-// Palette indices are part of the stored artwork. Append new colors at the end.
+// Keep each stored index in its original color family when revising swatches.
 export const palette = [
-  ['White', '#ffffff'], ['Silver', '#c2c8ca'], ['Slate', '#798896'], ['Ink', '#263043'],
-  ['Wine', '#82374b'], ['Red', '#d74146'], ['Coral', '#fc7664'], ['Peach', '#ffbd90'],
-  ['Ochre', '#bc832d'], ['Gold', '#f4ae32'], ['Sunshine', '#ffe269'], ['Cream', '#fff3c4'],
-  ['Pine', '#295b45'], ['Leaf', '#468347'], ['Grass', '#70ad48'], ['Lime', '#aad45a'],
-  ['Mint', '#d5e985'], ['Teal', '#328a86'], ['Jade', '#6fc8a5'], ['Ice', '#a9e4dc'],
-  ['Navy', '#34527c'], ['Blue', '#386fc1'], ['Lake', '#559dd5'], ['Sky', '#96cfea'],
-  ['Mist', '#d6ecf1'], ['Violet', '#7355a1'], ['Lilac', '#b094ce'], ['Pink', '#f0a3c3'],
-  ['Earth', '#664735'], ['Bark', '#916342'], ['Clay', '#b98857'], ['Sand', '#dfb781']
+  ['White', '#ffffff'], ['Silver', '#c0c0c0'], ['Gray', '#808080'], ['Black', '#000000'],
+  ['Maroon', '#800000'], ['Red', '#ff0000'], ['Vermilion', '#ff3300'], ['Orange', '#ff9900'],
+  ['Olive', '#808000'], ['Gold', '#ffcc00'], ['Yellow', '#ffff00'], ['Lemon', '#ffff66'],
+  ['Forest', '#003300'], ['Green', '#008000'], ['Grass', '#33cc00'], ['Lime', '#00ff00'],
+  ['Chartreuse', '#99ff00'], ['Teal', '#008080'], ['Spring green', '#00cc99'], ['Aqua', '#00ffff'],
+  ['Navy', '#000080'], ['Blue', '#0000ff'], ['Azure', '#0066ff'], ['Sky', '#00ccff'],
+  ['Ice', '#99ffff'], ['Purple', '#800080'], ['Violet', '#9933ff'], ['Fuchsia', '#ff00ff'],
+  ['Umber', '#663300'], ['Sienna', '#993300'], ['Copper', '#cc6600'], ['Amber', '#ff9933']
 ];
 export function initialRow(y) {
   const row = new Uint8Array(SIZE);

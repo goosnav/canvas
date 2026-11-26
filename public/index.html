@@ -24,16 +24,27 @@
       <button id="hand" aria-pressed="false"><span class="icon hand"></span>Pan</button>
     </div>
     <div class="group grid-group"><button id="grid" aria-pressed="true"><span class="grid-icon"></span>Grid</button></div>
-    <div class="group zoom" role="group" aria-label="Zoom controls">
-      <button id="minus" aria-label="Zoom out" title="Zoom out">−</button><output id="zoom-value" aria-label="Zoom"></output><button id="plus" aria-label="Zoom in" title="Zoom in">+</button>
-      <button id="fit" title="Show the whole canvas">Fit</button>
-    </div>
   </div>
   <section class="workspace" aria-label="Shared drawing surface">
     <div class="ruler-origin" aria-hidden="true">⌖</div>
     <canvas id="top-ruler" class="ruler" aria-hidden="true"></canvas>
     <canvas id="left-ruler" class="ruler" aria-hidden="true"></canvas>
-    <canvas id="surface" tabindex="0" aria-label="Pixel canvas. Select a cell with the pointer or arrow keys. Press Enter to place the chosen color.">Enable JavaScript to edit the shared canvas.</canvas>
+    <canvas id="surface" tabindex="0" aria-label="Pixel canvas. Double-click or double-tap a pixel to paint. Use arrow keys to select and Enter to paint.">Enable JavaScript to edit the shared canvas.</canvas>
+    <aside class="navigator" aria-label="Canvas navigator">
+      <details id="map-details" open>
+        <summary>Navigator</summary>
+        <div class="map" id="map" tabindex="0" role="group" aria-label="Canvas overview. Drag or use the arrow keys to pan.">
+          <canvas id="thumbnail" width="168" height="168" aria-hidden="true"></canvas>
+          <span id="viewport-box" aria-hidden="true"></span>
+        </div>
+      </details>
+      <div class="zoom">
+        <button id="minus" aria-label="Zoom out" title="Zoom out">−</button>
+        <input id="zoom-slider" type="range" min="0" max="1000" value="500" aria-label="Canvas zoom">
+        <button id="plus" aria-label="Zoom in" title="Zoom in">+</button>
+      </div>
+      <div class="map-values"><output id="zoom-value" aria-label="Zoom"></output><button class="standard" id="fit" title="Show the whole canvas">Fit</button></div>
+    </aside>
   </section>
   <div class="palette-bar">
     <div class="colors">
@@ -47,8 +58,8 @@
 <dialog id="guide">
   <form method="dialog">
     <div class="titlebar"><b>Canvas help</b><button aria-label="Close help" class="title-button">×</button></div>
-    <div class="guide-body"><p>Choose a color, select a pixel, then press <b>Place pixel</b>. Everyone sees your edit. You can place seven pixels per internet address. The first starts a 27-second timer. All seven refill together.</p>
-    <p>Drag to pan. Scroll or pinch to zoom. <b>Fit</b> shows all nine million pixels.</p>
+    <div class="guide-body"><p>Choose a color, then double-click or double-tap a pixel to paint it. Everyone sees your edit. You can place seven pixels per internet address. The first starts a 27-second timer. All seven refill together.</p>
+    <p>Drag to pan. Drag the Navigator thumbnail to move around the board. Scroll, pinch, or use the slider to zoom. <b>Fit</b> shows all nine million pixels.</p>
     <p>With the canvas focused, use the arrow keys to select a pixel and Enter to place it.</p><button class="standard">OK</button></div>
   </form>
 </dialog>

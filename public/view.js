@@ -1,6 +1,7 @@
 import { SIZE, palette, initialRow } from './board.js';
 
 import { island } from './island.js';
+import { createNavigator } from './navigator.js';
 
 const surface = document.querySelector('#surface');
 const ctx = surface.getContext('2d');
@@ -14,6 +15,14 @@ let width = 1, height = 1, scale = 1, frame = 0, fitted = false;
 let selected = null, hover = null, grid = true, pencil = true, ink = 3;
 let moving = false, lastPoint, startPoint;
 const contacts = new Map();
+let lastTap = null, mousePair = false, revision = 0;
+const updateNavigator = createNavigator(bitmap, {
+  centerOn(x, y) {
+    center.x = x; center.y = y; boundCenter(); fitted = false; invalidate();
+  },
+  zoomTo: zoomAt,
+  invalidate
+});
 export const viewEvents = new EventTarget();
 const changed = () => viewEvents.dispatchEvent(new Event('selection'));
 const clamp = (n, low, high) => Math.max(low, Math.min(high, n));
@@ -48,13 +57,13 @@ export function loadSnapshot(buffer, first) {
     const y = (bytes[i] << 8) + bytes[i + 1];
     paintRow(y, bytes.subarray(i + 2, i + 2 + SIZE));
   }
-  invalidate();
+  revision++; invalidate();
 }
 export function setPixel({ x, y, color }) {
   pixels[y * SIZE + x] = color;
   paint.fillStyle = palette[color][1];
   paint.fillRect(x, y, 1, 1);
-  invalidate();
+  revision++; invalidate();
 }
 export function chosen() { return selected; }
 export function sameColor() { return selected && pixels[selected.y * SIZE + selected.x] === ink; }
@@ -104,7 +113,7 @@ function draw() {
   frame = 0;
   backing(surface, width, height);
   const ox = left(), oy = top(), side = SIZE * scale;
-  ctx.fillStyle = '#9da6a5';
+  ctx.fillStyle = '#808080';
   ctx.fillRect(0, 0, width, height);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(bitmap, ox, oy, side, side);
@@ -129,7 +138,10 @@ function draw() {
   }
   ctx.restore();
   ruler('#top-ruler', true); ruler('#left-ruler', false);
-  document.querySelector('#zoom-value').textContent = Math.round(scale * 100) + '%';
+  updateNavigator({
+    x: center.x, y: center.y, width: width / scale, height: height / scale,
+    scale, minimum: fitScale()
+  }, revision);
   const cell = selected || hover;
   document.querySelector('#coords').textContent = cell ? cell.x + ', ' + cell.y : '—, —';
 }
@@ -138,6 +150,7 @@ function boundCenter() {
   center.y = clamp(center.y, 0, SIZE);
 }
 function zoomAt(next, p = { x: width / 2, y: height / 2 }) {
+  resetTaps();
   const value = clamp(next, fitScale(), 64);
   center.x += (p.x - width / 2) * (1 / scale - 1 / value);
   center.y += (p.y - height / 2) * (1 / scale - 1 / value);
@@ -198,17 +211,41 @@ surface.addEventListener('pointermove', event => {
 function release(event, commit) {
   if (!contacts.has(event.pointerId)) return;
   if (commit && !moving && pencil) {
-    selected = cellAt(point(event));
-    if (selected && scale < 3) {
-      center.x = selected.x + .5; center.y = selected.y + .5; zoomAt(8);
+    const p = point(event);
+    selected = cellAt(p);
+    const previous = lastTap;
+    const isMouse = event.pointerType === 'mouse';
+    const paired = selected && previous && previous.type === event.pointerType &&
+      Math.hypot(previous.x - p.x, previous.y - p.y) <= (isMouse ? 4 : 10);
+    mousePair = isMouse && paired && selected.x === previous.cell.x && selected.y === previous.cell.y;
+    if (!isMouse && paired && event.timeStamp - previous.time <= 450) {
+      selected = previous.cell;
+      lastTap = null;
+      changed();
+      viewEvents.dispatchEvent(new Event('place'));
+    } else {
+      lastTap = selected && { ...p, type: event.pointerType, time: event.timeStamp, cell: selected };
+      changed();
     }
-    changed();
+  } else {
+    resetTaps();
   }
   contacts.delete(event.pointerId);
   if (contacts.size) { startPoint = lastPoint = gesture(); moving = true; }
   else { moving = false; surface.classList.remove('drag'); }
   hover = null; invalidate();
 }
+function resetTaps() {
+  lastTap = null;
+  mousePair = false;
+}
+document.addEventListener('pointerdown', event => {
+  if (event.target !== surface) resetTaps();
+});
+surface.addEventListener('dblclick', event => {
+  if (mousePair && pencil && event.button === 0) viewEvents.dispatchEvent(new Event('place'));
+  resetTaps();
+});
 surface.addEventListener('pointerup', e => release(e, true));
 surface.addEventListener('lostpointercapture', e => release(e, false));
 surface.addEventListener('pointercancel', e => release(e, false));
@@ -219,8 +256,9 @@ surface.addEventListener('wheel', e => {
   zoomAt(scale * Math.exp(-clamp(delta, -300, 300) * .004), point(e));
 }, { passive: false });
 surface.addEventListener('keydown', e => {
+  resetTaps();
   const dirs = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); document.querySelector('#place').click(); return; }
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); viewEvents.dispatchEvent(new Event('place')); return; }
   if (e.key === 'Escape') { selected = null; changed(); invalidate(); return; }
   if (!dirs[e.key]) return;
   e.preventDefault();

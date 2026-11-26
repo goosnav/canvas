@@ -2,7 +2,7 @@
 
 A public, persistent 3000 × 3000 pixel canvas with the window chrome, font, and cursors from Goosnav Paint. The small goose pond at the center is editable down to its last pixel.
 
-Choose a swatch, select a cell, and click **Place pixel**. Drag to pan, scroll or pinch to zoom, and use **Fit** to see the whole sheet. With the canvas focused, the arrow keys select a cell and Enter places the pixel.
+Choose a swatch and double-click or double-tap a pixel to paint. Drag to pan, scroll or pinch to zoom, or drag the viewport in the lower-right Navigator. Its zoom slider and **Fit** button let you move between individual pixels and the whole sheet. With the canvas focused, the arrow keys select a cell and Enter places the pixel.
 
 ## Run locally
 

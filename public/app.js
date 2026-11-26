@@ -2,6 +2,7 @@ import { palette, PIXELS_PER_TURN } from './board.js';
 import { chosen, sameColor, loadSnapshot, setPixel, setInk, viewEvents } from './view.js';
 
 const $ = selector => document.querySelector(selector);
+const placementHint = matchMedia('(pointer: coarse)').matches ? 'Double-tap a pixel' : 'Double-click a pixel';
 const place = $('#place'), hint = $('#hint'), connection = $('#connection');
 let ink = 3, live = false, deadline = 0, pending = false, retry = 500;
 let available = PIXELS_PER_TURN;
@@ -30,7 +31,7 @@ function update() {
   const waiting = available === 0;
   place.disabled = !live || pending || waiting || !chosen() || sameColor();
   place.textContent = pending ? 'Placing…' : waiting ? 'Wait ' + seconds + 's' : 'Place pixel';
-  hint.textContent = !live ? '' : !chosen() ? 'Select a pixel' : sameColor() ? 'Choose another color' : palette[ink][0];
+  hint.textContent = !live ? '' : !chosen() ? placementHint : sameColor() ? 'Choose another color' : palette[ink][0];
   clearTimeout(tick);
   $('.turn').textContent = live ? available + '/' + PIXELS_PER_TURN + ' pixels' : '7 pixels / 27s';
   if (seconds) tick = setTimeout(update, 250);
@@ -80,12 +81,14 @@ function connect() {
   };
   ws.onerror = () => ws.close();
 }
-place.onclick = () => {
+function placePixel() {
   if (place.disabled || socket.readyState !== WebSocket.OPEN) return;
   pending = true; update();
   socket.send(JSON.stringify({ ...chosen(), color: ink }));
   responseTimer = setTimeout(() => socket.close(4000, 'Refresh placement'), 8000);
-};
+}
+place.onclick = placePixel;
+viewEvents.addEventListener('place', placePixel);
 viewEvents.addEventListener('selection', update);
 $('#help').onclick = () => $('#guide').showModal();
 window.addEventListener('online', () => { if (socket.readyState === WebSocket.CLOSED) connect(); });
