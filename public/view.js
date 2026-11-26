@@ -177,9 +177,8 @@ function mode(isPencil) {
 }
 document.querySelector('#pencil').onclick = () => mode(true);
 document.querySelector('#hand').onclick = () => mode(false);
-document.querySelector('#single-click').onclick = event => {
-  singleClick = !singleClick;
-  event.currentTarget.setAttribute('aria-pressed', singleClick);
+document.querySelector('#single-click').onchange = event => {
+  singleClick = event.currentTarget.checked;
   if (singleClick) mode(true);
   resetTaps();
   changed();

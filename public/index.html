@@ -33,9 +33,11 @@
   <div class="tools">
     <div class="group modes" role="group" aria-label="Canvas tool">
       <button id="pencil" aria-pressed="true"><span class="icon pencil"></span>Pencil</button>
+      <label class="placement-switch" title="Place one pixel on press with Pencil">
+        <input id="single-click" type="checkbox" role="switch" autocomplete="off">Single click
+      </label>
       <button id="hand" aria-pressed="false"><span class="icon hand"></span>Pan</button>
     </div>
-    <button id="single-click" aria-pressed="false" title="Place one pixel on press with Pencil">Single click</button>
     <div class="group grid-group"><button id="grid" aria-pressed="true"><span class="grid-icon"></span>Grid</button></div>
     <div class="group">
       <button id="save" disabled><span class="floppy-icon" aria-hidden="true"></span><span>Save PNG</span></button>

@@ -22,6 +22,14 @@ h1{margin:0;font:bold 11px/1.45 "Pixel Tahoma",Tahoma,Verdana,sans-serif;text-sh
 .group+.group{border-left:1px solid #c5c2b4;padding-left:10px}
 .tools{flex-wrap:wrap;padding:3px 5px;background:linear-gradient(#fbfbf9,#f1efe5 60%,#e5e2d3)}
 .tools button{white-space:nowrap;height:29px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:0 8px;border:1px solid transparent;border-radius:2px;background:transparent}
+.placement-switch{display:inline-flex;align-items:center;gap:5px;min-height:29px;padding:0 4px;cursor:pointer;white-space:nowrap}
+#single-click{appearance:none;box-sizing:border-box;display:grid;align-items:center;width:28px;height:16px;margin:0;padding:1px 2px;border:1px solid #606060;border-radius:8px;background:#787878;cursor:pointer}
+#single-click::before{content:"";width:10px;height:10px;border-radius:50%;background:white;box-shadow:0 1px 2px #0005;transition:transform .14s ease-out}
+#single-click:checked{background:#33803e;border-color:#275f30}
+#single-click:checked::before{transform:translateX(12px)}
+#single-click:focus-visible{outline:2px solid #134ea2;outline-offset:2px}
+@media(prefers-reduced-motion:reduce){#single-click::before{transition:none}}
+@media(forced-colors:active){#single-click{appearance:auto}#single-click::before{content:none}}
 .tools button:hover{border-color:#b9a77e;background:#fff4d2}
 .tools button[aria-pressed=true]{background:#dfdfd2;border-color:#9b9b8d;box-shadow:inset 1px 1px #c1bfb0,inset -1px -1px #fff}
 .icon{width:18px;height:18px;background:center / contain no-repeat}
