@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { SIZE, COOLDOWN, initialRow, palette } from '../public/board.js';
+import { SIZE, COOLDOWN, PIXELS_PER_TURN, initialRow, palette } from '../public/board.js';
 
 export default {
   fetch(request, env) {
@@ -11,7 +11,7 @@ export default {
     }
     const origin = request.headers.get('Origin');
     if (origin && origin !== url.origin) return new Response('Wrong origin', { status: 403 });
-    return env.BOARD.getByName('public-canvas-v1').fetch(request);
+    return env.BOARD.getByName('public-canvas-v2').fetch(request);
   }
 };
 
@@ -29,7 +29,7 @@ export class CanvasBoard extends DurableObject {
     super(ctx, env);
     this.sql = ctx.storage.sql;
     this.sql.exec('CREATE TABLE IF NOT EXISTS stripes (y INTEGER PRIMARY KEY, pixels BLOB NOT NULL)');
-    this.sql.exec('CREATE TABLE IF NOT EXISTS turns (visitor TEXT PRIMARY KEY, until INTEGER NOT NULL)');
+    this.sql.exec('CREATE TABLE IF NOT EXISTS turns (visitor TEXT PRIMARY KEY, until INTEGER NOT NULL, remaining INTEGER NOT NULL)');
     this.sql.exec('CREATE INDEX IF NOT EXISTS expired ON turns(until)');
     this.sql.exec('CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY, salt BLOB NOT NULL)');
     this.sql.exec('INSERT OR IGNORE INTO settings VALUES (1, randomblob(32))');
@@ -37,9 +37,10 @@ export class CanvasBoard extends DurableObject {
       { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   }
 
-  waitTime(visitor) {
-    const turn = this.sql.exec('SELECT until FROM turns WHERE visitor = ?', visitor).toArray()[0];
-    return Math.max(0, (turn?.until ?? 0) - Date.now());
+  allowance(visitor, now) {
+    const turn = this.sql.exec('SELECT until, remaining FROM turns WHERE visitor = ?', visitor).toArray()[0];
+    if (turn && turn.until > now) return { remaining: turn.remaining, wait: turn.until - now };
+    return { remaining: PIXELS_PER_TURN, wait: 0 };
   }
 
   async fetch(request) {
@@ -51,17 +52,22 @@ export class CanvasBoard extends DurableObject {
     server.serializeAttachment(visitor);
 
     // Snapshot and subscription use one synchronous turn, so no edit can fall between them.
-    const rows = this.sql.exec('SELECT y, pixels FROM stripes').toArray();
-    const snapshot = new Uint8Array(1 + rows.length * (SIZE + 2));
-    snapshot[0] = 1;
-    rows.forEach(({ y, pixels }, i) => {
-      const offset = 1 + i * (SIZE + 2);
-      snapshot[offset] = y >> 8;
-      snapshot[offset + 1] = y & 255;
-      snapshot.set(new Uint8Array(pixels), offset + 2);
-    });
-    server.send(snapshot);
-    server.send(JSON.stringify({ type: 'ready', wait: this.waitTime(visitor) }));
+    const rowWidth = SIZE + 2;
+    const batch = new Uint8Array(1 + 64 * rowWidth);
+    batch[0] = 2;
+    let offset = 1;
+    for (const { y, pixels } of this.sql.exec('SELECT y, pixels FROM stripes')) {
+      batch[offset] = y >> 8;
+      batch[offset + 1] = y & 255;
+      batch.set(new Uint8Array(pixels), offset + 2);
+      offset += rowWidth;
+      if (offset === batch.length) {
+        server.send(batch.slice());
+        offset = 1;
+      }
+    }
+    server.send(batch.slice(0, offset));
+    server.send(JSON.stringify({ type: 'ready', ...this.allowance(visitor, Date.now()) }));
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -74,24 +80,28 @@ export class CanvasBoard extends DurableObject {
         color < 0 || color >= palette.length) return socket.close(1008, 'Invalid pixel');
 
     const visitor = socket.deserializeAttachment();
-    const wait = this.waitTime(visitor);
-    if (wait) return send(socket, JSON.stringify({ type: 'wait', wait }));
+    const now = Date.now();
+    const quota = this.allowance(visitor, now);
+    if (!quota.remaining) return send(socket, JSON.stringify({ type: 'limit', ...quota }));
     const saved = this.sql.exec('SELECT pixels FROM stripes WHERE y = ?', y).toArray()[0];
     const row = saved ? new Uint8Array(saved.pixels) : initialRow(y);
     if (row[x] === color) return send(socket, JSON.stringify({ type: 'same' }));
 
     row[x] = color;
-    const now = Date.now();
+    const remaining = quota.remaining - 1;
+    const wait = quota.wait || COOLDOWN;
     this.ctx.storage.transactionSync(() => {
       this.sql.exec('INSERT OR REPLACE INTO stripes VALUES (?, ?)', y, row.buffer);
       this.sql.exec('DELETE FROM turns WHERE until <= ?', now);
-      this.sql.exec('INSERT OR REPLACE INTO turns VALUES (?, ?)', visitor, now + COOLDOWN);
+      this.sql.exec('INSERT OR REPLACE INTO turns VALUES (?, ?, ?)', visitor, now + wait, remaining);
     });
 
     const pixel = JSON.stringify({ type: 'pixel', x, y, color });
     for (const peer of this.ctx.getWebSockets()) send(peer, pixel);
-    const cooldown = JSON.stringify({ type: 'wait', wait: COOLDOWN });
-    for (const peer of this.ctx.getWebSockets(visitor)) send(peer, cooldown);
+    for (const peer of this.ctx.getWebSockets(visitor)) {
+      send(peer, JSON.stringify({ type: 'quota', remaining, wait }));
+    }
+    send(socket, JSON.stringify({ type: 'placed' }));
   }
 
   webSocketClose(socket) { socket.close(1000, 'Disconnected'); }

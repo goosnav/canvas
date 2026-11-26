@@ -1,6 +1,6 @@
 # Goosnav Canvas
 
-A public, persistent 1000 × 1000 pixel canvas with the window chrome, font, and cursors from Goosnav Paint. The small goose pond at the center is editable down to its last pixel.
+A public, persistent 3000 × 3000 pixel canvas with the window chrome, font, and cursors from Goosnav Paint. The small goose pond at the center is editable down to its last pixel.
 
 Choose a swatch, select a cell, and click **Place pixel**. Drag to pan, scroll or pinch to zoom, and use **Fit** to see the whole sheet. With the canvas focused, the arrow keys select a cell and Enter places the pixel.
 
@@ -28,6 +28,6 @@ Wrangler publishes the static site, Worker, and SQLite-backed Durable Object tog
 
 One named Durable Object serializes placements for the whole site. It stores changed rows and each active cooldown in SQLite, then broadcasts each saved pixel over hibernating WebSockets. Reconnecting clients receive a fresh snapshot. The starter artwork and palette indices define the initial board and should remain stable across deployments.
 
-Visitors draw anonymously. The server permits one changed pixel per 30 seconds per public IP address. People sharing a public IP share that turn. The stored rate-limit key is a keyed hash of the address. Selecting the existing color costs no turn.
+Visitors draw anonymously. The server permits seven changed pixels per public IP address in a 27-second window. The first change starts the window. All seven slots refill together at expiry. Devices sharing a public IP share the allowance. The stored rate-limit key is a keyed hash of the address. Selecting the existing color costs no turn.
 
 Workers Free supports this storage and WebSocket configuration. Traffic above the account's free allowances can temporarily interrupt service. See [Cloudflare's Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/).

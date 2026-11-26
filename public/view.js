@@ -1,5 +1,7 @@
 import { SIZE, palette, initialRow } from './board.js';
 
+import { island } from './island.js';
+
 const surface = document.querySelector('#surface');
 const ctx = surface.getContext('2d');
 const bitmap = document.createElement('canvas');
@@ -19,23 +21,33 @@ const fitScale = () => Math.min(width, height) * .94 / SIZE;
 const left = () => width / 2 - center.x * scale;
 const top = () => height / 2 - center.y * scale;
 
-export function loadSnapshot(buffer) {
+// Reuse a single scanline while decoding the nine-million-pixel board.
+const scanline = paint.createImageData(SIZE, 1);
+function paintRow(y, row) {
+  pixels.set(row, y * SIZE);
+  for (let x = 0; x < SIZE; x++) {
+    const color = rgb[row[x]];
+    scanline.data[x * 4] = color[0];
+    scanline.data[x * 4 + 1] = color[1];
+    scanline.data[x * 4 + 2] = color[2];
+    scanline.data[x * 4 + 3] = 255;
+  }
+  paint.putImageData(scanline, 0, y);
+}
+
+export function loadSnapshot(buffer, first) {
   const bytes = new Uint8Array(buffer);
-  if (bytes[0] !== 1 || (bytes.length - 1) % (SIZE + 2)) throw new Error('Invalid snapshot');
-  for (let y = 0; y < SIZE; y++) pixels.set(initialRow(y), y * SIZE);
+  if (bytes[0] !== 2 || (bytes.length - 1) % (SIZE + 2)) throw new Error('Invalid snapshot');
+  if (first) {
+    pixels.fill(0);
+    paint.fillStyle = palette[0][1];
+    paint.fillRect(0, 0, SIZE, SIZE);
+    for (let y = island.y; y < island.y + island.rows.length; y++) paintRow(y, initialRow(y));
+  }
   for (let i = 1; i < bytes.length; i += SIZE + 2) {
     const y = (bytes[i] << 8) + bytes[i + 1];
-    pixels.set(bytes.subarray(i + 2, i + 2 + SIZE), y * SIZE);
+    paintRow(y, bytes.subarray(i + 2, i + 2 + SIZE));
   }
-  const image = paint.createImageData(SIZE, SIZE);
-  for (let i = 0; i < pixels.length; i++) {
-    const c = rgb[pixels[i]];
-    image.data[i * 4] = c[0];
-    image.data[i * 4 + 1] = c[1];
-    image.data[i * 4 + 2] = c[2];
-    image.data[i * 4 + 3] = 255;
-  }
-  paint.putImageData(image, 0, 0);
   invalidate();
 }
 export function setPixel({ x, y, color }) {

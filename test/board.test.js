@@ -62,7 +62,7 @@ function client(port) {
   };
 }
 
-test('one public board persists updates and atomically enforces a 30-second turn', { timeout: 65_000 }, async t => {
+test('one public board persists updates and shares seven placements per 27-second window', { timeout: 65_000 }, async t => {
   const storage = await mkdtemp(join(tmpdir(), 'canvas-test-'));
   const port = await freePort();
   let stop;
@@ -74,11 +74,12 @@ test('one public board persists updates and atomically enforces a 30-second turn
     await rm(storage, { recursive: true, force: true });
   });
 
+  assert.equal(SIZE, 3000);
   stop = await startWorker(port, storage);
   const a = open(), b = open();
   for (const peer of [a, b]) {
-    assert.deepEqual(await peer.read(), new Uint8Array([1]));
-    assert.deepEqual(await peer.read(), { type: 'ready', wait: 0 });
+    assert.deepEqual(await peer.read(), new Uint8Array([2]));
+    assert.deepEqual(await peer.read(), { type: 'ready', remaining: 7, wait: 0 });
   }
   a.place(0, 0, 0);
   assert.deepEqual(await a.read(), { type: 'same' });
@@ -88,16 +89,38 @@ test('one public board persists updates and atomically enforces a 30-second turn
   invalid.place(SIZE, 0, 1);
   assert.equal((await closed)[0].code, 1008);
 
-  a.place(999, 999, 6);
-  b.place(999, 999, 7);
+  let previousWait = 27_000;
+  for (let i = 0; i < 6; i++) {
+    const author = i % 2 ? b : a;
+    author.place(i, 2999, 6);
+    for (const peer of [a, b]) {
+      assert.deepEqual(await peer.read(), { type: 'pixel', x: i, y: 2999, color: 6 });
+      const quota = await peer.read();
+      assert.equal(quota.type, 'quota');
+      assert.equal(quota.remaining, 6 - i);
+      if (!i) assert.equal(quota.wait, 27_000);
+      assert.ok(quota.wait > 0 && quota.wait <= previousWait);
+      previousWait = quota.wait;
+    }
+    assert.deepEqual(await author.read(), { type: 'placed' });
+    if (!i) await delay(100);
+  }
+  assert.ok(previousWait < 27_000);
+  a.place(2999, 2999, 6);
+  b.place(2999, 2999, 7);
   const update = await a.read();
   assert.equal(update.type, 'pixel');
   assert.deepEqual(await b.read(), update);
-  assert.ok([6, 7].includes(update.color));
-  for (const peer of [a, b]) assert.deepEqual(await peer.read(), { type: 'wait', wait: 30_000 });
-  const refused = await (update.color === 6 ? b : a).read();
-  assert.equal(refused.type, 'wait');
-  assert.ok(refused.wait > 0);
+  for (const peer of [a, b]) {
+    const quota = await peer.read();
+    assert.equal(quota.remaining, 0);
+    assert.ok(quota.wait <= previousWait);
+  }
+  const author = update.color === 6 ? a : b;
+  assert.deepEqual(await author.read(), { type: 'placed' });
+  const refused = await (author === a ? b : a).read();
+  assert.equal(refused.type, 'limit');
+  assert.equal(refused.remaining, 0);
   a.close(); b.close();
 
   await stop();
@@ -105,15 +128,17 @@ test('one public board persists updates and atomically enforces a 30-second turn
   const fresh = open();
   const snapshot = await fresh.read();
   assert.equal(snapshot.length, 1 + 2 + SIZE);
-  assert.equal((snapshot[1] << 8) + snapshot[2], 999);
-  assert.equal(snapshot[3 + 999], update.color);
+  assert.equal((snapshot[1] << 8) + snapshot[2], 2999);
+  assert.equal(snapshot[3 + 2999], update.color);
   const ready = await fresh.read();
   assert.equal(ready.type, 'ready');
-  assert.ok(ready.wait > 0 && ready.wait <= 30_000);
+  assert.equal(ready.remaining, 0);
+  assert.ok(ready.wait > 0 && ready.wait <= previousWait);
   fresh.place(0, 0, 3);
   const blocked = await fresh.read();
-  assert.equal(blocked.type, 'wait');
+  assert.equal(blocked.type, 'limit');
   await delay(blocked.wait + 50);
   fresh.place(0, 0, 3);
   assert.deepEqual(await fresh.read(), { type: 'pixel', x: 0, y: 0, color: 3 });
+  assert.deepEqual(await fresh.read(), { type: 'quota', remaining: 6, wait: 27_000 });
 });

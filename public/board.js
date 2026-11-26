@@ -1,7 +1,8 @@
 import { island } from './island.js';
 
-export const SIZE = 1000;
-export const COOLDOWN = 30_000;
+export const SIZE = 3000;
+export const COOLDOWN = 27_000;
+export const PIXELS_PER_TURN = 7;
 // Palette indices are part of the stored artwork. Append new colors at the end.
 export const palette = [
   ['White', '#ffffff'], ['Silver', '#c2c8ca'], ['Slate', '#798896'], ['Ink', '#263043'],

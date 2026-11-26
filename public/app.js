@@ -1,9 +1,10 @@
-import { palette } from './board.js';
+import { palette, PIXELS_PER_TURN } from './board.js';
 import { chosen, sameColor, loadSnapshot, setPixel, setInk, viewEvents } from './view.js';
 
 const $ = selector => document.querySelector(selector);
 const place = $('#place'), hint = $('#hint'), connection = $('#connection');
 let ink = 3, live = false, deadline = 0, pending = false, retry = 500;
+let available = PIXELS_PER_TURN;
 let socket, responseTimer, retryTimer, tick;
 const swatches = palette.map(([name, hex], index) => {
   const button = document.createElement('button');
@@ -24,12 +25,15 @@ function choose(index) {
   update();
 }
 function update() {
-  const remaining = Math.max(0, Math.ceil((deadline - performance.now()) / 1000));
-  place.disabled = !live || pending || remaining > 0 || !chosen() || sameColor();
-  place.textContent = pending ? 'Placing…' : remaining ? 'Wait ' + remaining + 's' : 'Place pixel';
+  const seconds = Math.max(0, Math.ceil((deadline - performance.now()) / 1000));
+  if (!seconds) available = PIXELS_PER_TURN;
+  const waiting = available === 0;
+  place.disabled = !live || pending || waiting || !chosen() || sameColor();
+  place.textContent = pending ? 'Placing…' : waiting ? 'Wait ' + seconds + 's' : 'Place pixel';
   hint.textContent = !live ? '' : !chosen() ? 'Select a pixel' : sameColor() ? 'Choose another color' : palette[ink][0];
   clearTimeout(tick);
-  if (remaining) tick = setTimeout(update, 250);
+  $('.turn').textContent = live ? available + '/' + PIXELS_PER_TURN + ' pixels' : '7 pixels / 27s';
+  if (seconds) tick = setTimeout(update, 250);
 }
 function setLive(value, message) {
   live = value;
@@ -48,18 +52,21 @@ function connect() {
     if (ws !== socket) return;
     try {
       if (data instanceof ArrayBuffer) {
-        loadSnapshot(data); snapshotReceived = true; return;
+        loadSnapshot(data, !snapshotReceived); snapshotReceived = true; return;
       }
       const event = JSON.parse(data);
       switch (event.type) {
         case 'ready':
           if (!snapshotReceived) throw new Error('Missing canvas');
-          retry = 500; deadline = performance.now() + event.wait;
+          retry = 500; available = event.remaining; deadline = performance.now() + event.wait;
           setLive(true, 'Live'); break;
         case 'pixel': setPixel(event); break;
-        case 'wait': deadline = performance.now() + event.wait;
-          // The server delivers this to every tab sharing a turn.
-          pending = false; clearTimeout(responseTimer); break;
+        case 'quota':
+        case 'limit':
+          available = event.remaining; deadline = performance.now() + event.wait;
+          if (event.type === 'limit') { pending = false; clearTimeout(responseTimer); }
+          break;
+        case 'placed':
         case 'same': pending = false; clearTimeout(responseTimer); break;
       }
       update();
