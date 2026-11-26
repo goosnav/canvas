@@ -31,12 +31,17 @@
     <img class="brand" src="/mark.png" width="25" height="25" alt="Goosnav">
   </header>
   <div class="tools">
-    <div class="group modes" role="group" aria-label="Canvas tool">
+    <div class="group" role="group" aria-label="Pencil tool">
       <button id="pencil" aria-pressed="true"><span class="icon pencil"></span>Pencil</button>
       <label class="placement-switch" title="Place one pixel on press with Pencil">
         <input id="single-click" type="checkbox" role="switch" autocomplete="off">Single click
       </label>
+    </div>
+    <div class="group" role="group" aria-label="Pan tool">
       <button id="hand" aria-pressed="false"><span class="icon hand"></span>Pan</button>
+      <label class="placement-switch" title="Keep the canvas position and zoom fixed while painting">
+        <input id="lock-canvas" type="checkbox" role="switch" autocomplete="off">Lock canvas
+      </label>
     </div>
     <div class="group grid-group"><button id="grid" aria-pressed="true"><span class="grid-icon"></span>Grid</button></div>
     <div class="group">
@@ -76,7 +81,7 @@
 <dialog id="guide">
   <form method="dialog">
     <div class="titlebar"><b>Canvas help</b><button aria-label="Close help" class="title-button">×</button></div>
-    <div class="guide-body"><p>Choose a color, then double-click or double-tap a pixel to paint it. Turn on <b>Single click</b> to paint as soon as you press. Use <b>Pan</b> to move without painting. <span id="rule-help">The first placement starts the timer. All placements refill together.</span></p>
+    <div class="guide-body"><p>Choose a color, then double-click or double-tap a pixel to paint it. Turn on <b>Single click</b> to paint as soon as you press. Use <b>Pan</b> to move without painting or <b>Lock canvas</b> to keep the view still. <span id="rule-help">The first placement starts the timer. All placements refill together.</span></p>
     <p>Drag to pan. Drag the Navigator thumbnail to move around the board. Scroll, pinch, or use the slider to zoom. <b>Fit</b> shows all nine million pixels.</p>
     <p>With the canvas focused, use the arrow keys to select a pixel and Enter to place it.</p><button class="standard">OK</button></div>
   </form>

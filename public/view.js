@@ -4,6 +4,7 @@ import { island } from './island.js';
 import { createNavigator } from './navigator.js';
 
 const surface = document.querySelector('#surface');
+const viewLock = document.querySelector('#lock-canvas');
 const ctx = surface.getContext('2d');
 const bitmap = document.createElement('canvas');
 bitmap.width = bitmap.height = SIZE;
@@ -19,6 +20,7 @@ const contacts = new Map();
 let lastTap = null, mousePair = false, revision = 0;
 const updateNavigator = createNavigator(bitmap, {
   centerOn(x, y) {
+    if (viewLock.checked) return;
     center.x = x; center.y = y; boundCenter(); fitted = false; invalidate();
   },
   zoomTo: zoomAt,
@@ -159,6 +161,7 @@ function boundCenter() {
   center.y = clamp(center.y, 0, SIZE);
 }
 function zoomAt(next, p = { x: width / 2, y: height / 2 }) {
+  if (viewLock.checked) return;
   resetTaps();
   const value = clamp(next, fitScale(), 64);
   center.x += (p.x - width / 2) * (1 / scale - 1 / value);
@@ -166,6 +169,7 @@ function zoomAt(next, p = { x: width / 2, y: height / 2 }) {
   scale = value; fitted = false; boundCenter(); invalidate();
 }
 function fit() {
+  if (viewLock.checked) return;
   center.x = center.y = SIZE / 2; scale = fitScale(); fitted = true; invalidate();
 }
 function mode(isPencil) {
@@ -182,6 +186,17 @@ document.querySelector('#single-click').onchange = event => {
   if (singleClick) mode(true);
   resetTaps();
   changed();
+};
+viewLock.onchange = () => {
+  resetTaps();
+  contacts.clear();
+  moving = false;
+  surface.classList.remove('drag');
+  if (viewLock.checked) mode(true);
+  for (const control of document.querySelectorAll('#hand, .navigator button, #zoom-slider')) {
+    control.disabled = viewLock.checked;
+  }
+  document.querySelector('#map').inert = viewLock.checked;
 };
 document.querySelector('#grid').onclick = e => {
   grid = !grid; e.currentTarget.setAttribute('aria-pressed', grid); invalidate();
@@ -222,7 +237,7 @@ surface.addEventListener('pointermove', event => {
   contacts.set(event.pointerId, p);
   const next = gesture();
   if (Math.hypot(next.x - startPoint.x, next.y - startPoint.y) > 4) moving = true;
-  if (moving) {
+  if (moving && !viewLock.checked) {
     surface.classList.add('drag'); hover = null;
     center.x -= (next.x - lastPoint.x) / scale; center.y -= (next.y - lastPoint.y) / scale;
     if (next.distance && lastPoint.distance) zoomAt(scale * next.distance / lastPoint.distance, next);
@@ -285,10 +300,17 @@ surface.addEventListener('keydown', e => {
   e.preventDefault();
   const [dx, dy] = dirs[e.key];
   const base = selected || { x: Math.floor(center.x), y: Math.floor(center.y) };
-  selected = { x: clamp(base.x + dx, 0, SIZE - 1), y: clamp(base.y + dy, 0, SIZE - 1) };
-  if (scale < 3) zoomAt(8);
-  if (Math.abs(selected.x + .5 - center.x) * scale > width / 2 - scale) center.x = selected.x + .5;
-  if (Math.abs(selected.y + .5 - center.y) * scale > height / 2 - scale) center.y = selected.y + .5;
+  const next = { x: clamp(base.x + dx, 0, SIZE - 1), y: clamp(base.y + dy, 0, SIZE - 1) };
+  if (viewLock.checked) {
+    // Keep keyboard selection within the visible part of the board.
+    next.x = clamp(next.x, Math.max(0, Math.floor(-left() / scale)), Math.min(SIZE - 1, Math.ceil((width - left()) / scale) - 1));
+    next.y = clamp(next.y, Math.max(0, Math.floor(-top() / scale)), Math.min(SIZE - 1, Math.ceil((height - top()) / scale) - 1));
+  } else {
+    if (scale < 3) zoomAt(8);
+    if (Math.abs(next.x + .5 - center.x) * scale > width / 2 - scale) center.x = next.x + .5;
+    if (Math.abs(next.y + .5 - center.y) * scale > height / 2 - scale) center.y = next.y + .5;
+  }
+  selected = next;
   changed(); invalidate();
 });
 let firstSize = true;
