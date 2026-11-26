@@ -19,8 +19,9 @@ async function freePort() {
   return port;
 }
 
-async function startWorker(port, storage, rateLimit) {
+async function startWorker(port, storage, rateLimit, adminKey) {
   const vars = rateLimit ? ['--var', 'PIXEL_RATE_LIMIT:' + rateLimit] : [];
+  if (adminKey) vars.push('--var', 'CANVAS_ADMIN_KEY:' + adminKey);
   const proc = spawn(process.execPath, ['node_modules/wrangler/bin/wrangler.js', 'dev',
     '--local', '--ip', '127.0.0.1', '--port', String(port), '--persist-to', storage, ...vars],
     { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } });
@@ -82,7 +83,7 @@ test('IP mode shares seven placements across browsers and persists board and all
   const a = open(), b = open();
   for (const peer of [a, b]) {
     assert.deepEqual(await peer.read(), new Uint8Array([2]));
-    assert.deepEqual(await peer.read(), { type: 'ready', remaining: 7, wait: 0 });
+    assert.deepEqual(await peer.read(), { type: 'ready', rules: { pixels: 7, seconds: 27, mode: 'ip' }, remaining: 7, wait: 0 });
   }
   a.place(0, 0, 0);
   assert.deepEqual(await a.read(), { type: 'same' });
@@ -239,4 +240,72 @@ test('the sidebar receives a cropped snapshot and in-crop updates on a read-only
   viewer.place(x, y, initialColor);
   assert.equal((await closed)[0].code, 1008);
   assert.equal((await open('preview').read())[0], color);
+});
+
+test('admin settings update connected browsers, protect writes, and survive restart', { timeout: 30_000 }, async t => {
+  const storage = await mkdtemp(join(tmpdir(), 'canvas-admin-test-'));
+  const port = await freePort();
+  const url = 'http://127.0.0.1:' + port + '/api/admin/settings';
+  const key = randomUUID();
+  const clients = [];
+  let stop;
+  t.after(async () => {
+    for (const peer of clients) peer.close();
+    if (stop) await stop();
+    await rm(storage, { recursive: true, force: true });
+  });
+  const open = async () => {
+    const peer = client(port, 'live', randomUUID());
+    clients.push(peer);
+    return { peer, snapshot: await peer.read(), ready: await peer.read() };
+  };
+  const request = (method, token, data, extra = {}) => fetch(url, {
+    method, headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', ...extra },
+    body: data && JSON.stringify(data)
+  });
+
+  stop = await startWorker(port, storage);
+  assert.equal((await request('GET', key)).status, 503);
+  await stop();
+  stop = await startWorker(port, storage, 'browser', key);
+  const a = (await open()).peer, b = (await open()).peer;
+  const shared = { pixels: 1, seconds: 2, mode: 'ip' };
+  assert.equal((await fetch(url)).status, 401);
+  assert.equal((await request('PUT', 'wrong', shared)).status, 401);
+  assert.equal((await request('PUT', key, shared, { Origin: 'https://elsewhere.example' })).status, 403);
+  for (const invalid of [{ pixels: 0 }, { pixels: 2.5 }, { seconds: 3601 }, { mode: 'unknown' }]) {
+    assert.equal((await request('PUT', key, { ...shared, ...invalid })).status, 400);
+  }
+  assert.deepEqual(await (await request('GET', key)).json(), { pixels: 7, seconds: 27, mode: 'browser' });
+  assert.deepEqual(await (await request('PUT', key, shared)).json(), shared);
+  for (const peer of [a, b]) {
+    assert.deepEqual(await peer.read(), { type: 'quota', rules: shared, remaining: 1, wait: 0 });
+  }
+  a.place(3, 0, 6);
+  for (const peer of [a, b]) {
+    assert.equal((await peer.read()).type, 'pixel');
+    assert.deepEqual(await peer.read(), { type: 'quota', remaining: 0, wait: 2000 });
+  }
+  assert.equal((await a.read()).type, 'placed');
+  await request('PUT', key, shared);
+  b.place(4, 0, 6);
+  const limited = await b.read();
+  assert.equal(limited.type, 'limit');
+  assert.ok(limited.wait > 0 && limited.wait <= 2000);
+
+  const separate = { pixels: 2, seconds: 35, mode: 'browser' };
+  await request('PUT', key, separate);
+  for (const peer of [a, b]) assert.deepEqual((await peer.read()).rules, separate);
+  for (const [i, author] of [a, b].entries()) {
+    author.place(4 + i, 0, 6);
+    for (const peer of [a, b]) assert.equal((await peer.read()).type, 'pixel');
+    assert.deepEqual(await author.read(), { type: 'quota', remaining: 1, wait: 35000 });
+    assert.equal((await author.read()).type, 'placed');
+  }
+  a.close(); b.close();
+  await stop();
+  stop = await startWorker(port, storage, 'ip', key);
+  const restored = await open();
+  assert.deepEqual(restored.ready.rules, separate);
+  assert.deepEqual([...restored.snapshot.slice(6, 9)], [6, 6, 6]);
 });

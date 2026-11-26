@@ -9,6 +9,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/goose_pixel_2.png">
   <link rel="stylesheet" href="/style.css">
   <script type="module" src="/app.js"></script>
+  <script type="module" src="/admin.js"></script>
 </head>
 <body>
 <main class="window">
@@ -67,15 +68,35 @@
     </div>
     <div class="placement"><span id="hint">Select a pixel</span><button id="place" disabled>Place pixel</button></div>
   </div>
-  <footer><span id="connection" role="status"><i></i><span>Connecting…</span></span><span class="coords" id="coords">—, —</span><span class="size">3000 × 3000</span><span class="turn">7 pixels / 27s</span></footer>
+  <footer><span class="status-cell"><span id="connection" role="status"><i></i><span>Connecting…</span></span><button type="button" class="standard" id="admin-open" aria-haspopup="dialog">Log in</button></span><span class="coords" id="coords">—, —</span><span class="size">3000 × 3000</span><span class="turn">7 pixels / 27s</span></footer>
 </main>
 <dialog id="guide">
   <form method="dialog">
     <div class="titlebar"><b>Canvas help</b><button aria-label="Close help" class="title-button">×</button></div>
-    <div class="guide-body"><p>Choose a color, then double-click or double-tap a pixel to paint it. Everyone sees your edit. You have seven placements. The first starts a 27-second timer. All seven refill together.</p>
+    <div class="guide-body"><p>Choose a color, then double-click or double-tap a pixel to paint it. Everyone sees your edit. <span id="rule-help">The first placement starts the timer. All placements refill together.</span></p>
     <p>Drag to pan. Drag the Navigator thumbnail to move around the board. Scroll, pinch, or use the slider to zoom. <b>Fit</b> shows all nine million pixels.</p>
     <p>With the canvas focused, use the arrow keys to select a pixel and Enter to place it.</p><button class="standard">OK</button></div>
   </form>
+</dialog>
+<dialog id="admin" aria-labelledby="admin-title">
+  <div class="titlebar"><b id="admin-title">Canvas admin</b><button type="button" id="admin-close" aria-label="Close admin" class="title-button">×</button></div>
+  <div class="admin-body">
+    <form id="admin-login">
+      <label for="admin-key">Admin API key</label>
+      <input id="admin-key" type="password" required autocomplete="off" spellcheck="false">
+      <div class="admin-actions"><button class="standard">Log in</button></div>
+    </form>
+    <form id="admin-settings" hidden>
+      <div class="rule-fields">
+        <label>Pixels per turn<input name="pixels" type="number" min="1" max="1000" required></label>
+        <label>Seconds per turn<input name="seconds" type="number" min="1" max="3600" required></label>
+      </div>
+      <label><input type="checkbox" name="shared"> Share the countdown by IP address</label>
+      <p>When off, each browser profile gets its own turn. Changing a rule starts a fresh turn for everyone.</p>
+      <div class="admin-actions"><button class="standard" id="admin-logout" type="button">Log out</button><button class="standard">Save changes</button></div>
+    </form>
+    <div id="admin-message" role="status"></div>
+  </div>
 </dialog>
 </body>
 </html>

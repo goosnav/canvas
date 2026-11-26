@@ -1,4 +1,4 @@
-import { browserId, palette, PIXELS_PER_TURN } from './board.js';
+import { browserId, palette, PIXELS_PER_TURN, COOLDOWN } from './board.js';
 import { canvasPNG, chosen, sameColor, loadSnapshot, setPixel, setInk, viewEvents } from './view.js';
 
 const $ = selector => document.querySelector(selector);
@@ -8,7 +8,8 @@ const save = $('#save');
 const saveLabel = save.lastElementChild;
 let ink = 3, live = false, deadline = 0, pending = false, retry = 500;
 let saving = false;
-let available = PIXELS_PER_TURN;
+let rules = { pixels: PIXELS_PER_TURN, seconds: COOLDOWN / 1000 };
+let available = rules.pixels;
 let socket, responseTimer, retryTimer, tick;
 const swatches = palette.map(([name, hex], index) => {
   const button = document.createElement('button');
@@ -30,13 +31,13 @@ function choose(index) {
 }
 function update() {
   const seconds = Math.max(0, Math.ceil((deadline - performance.now()) / 1000));
-  if (!seconds) available = PIXELS_PER_TURN;
+  if (!seconds) available = rules.pixels;
   const waiting = available === 0;
   place.disabled = !live || pending || waiting || !chosen() || sameColor();
   place.textContent = pending ? 'Placing…' : waiting ? 'Wait ' + seconds + 's' : 'Place pixel';
   hint.textContent = !live ? '' : !chosen() ? placementHint : sameColor() ? 'Choose another color' : palette[ink][0];
   clearTimeout(tick);
-  $('.turn').textContent = live ? available + '/' + PIXELS_PER_TURN + ' pixels' : '7 pixels / 27s';
+  $('.turn').textContent = live ? available + '/' + rules.pixels + ' pixels' : rules.pixels + ' pixels / ' + rules.seconds + 's';
   if (seconds) tick = setTimeout(update, 250);
 }
 function setLive(value, message) {
@@ -68,6 +69,11 @@ function connect() {
         loadSnapshot(data, !snapshotReceived); snapshotReceived = true; return;
       }
       const event = JSON.parse(data);
+      if (event.rules) {
+        rules = event.rules;
+        window.dispatchEvent(new CustomEvent("canvas-rules", { detail: rules }));
+        $('#rule-help').textContent = `You can place ${rules.pixels} per turn. The first placement starts a ${rules.seconds}-second timer. All placements refill together.`;
+      }
       switch (event.type) {
         case 'ready':
           if (!snapshotReceived) throw new Error('Missing canvas');

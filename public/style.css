@@ -73,7 +73,20 @@ h1{margin:0;font:bold 11px/1.45 "Pixel Tahoma",Tahoma,Verdana,sans-serif;text-sh
 #place:enabled:hover,.standard:hover{box-shadow:inset 0 0 0 2px #ffd273}
 footer{display:flex;align-items:center;color:#393b35;padding:1px 4px 2px}
 footer>span{display:flex;align-items:center;gap:6px;height:100%;padding:0 9px;border-top:1px solid #c3c1b4;border-left:1px solid #c3c1b4;border-right:1px solid white}
-#connection{flex:1}
+.status-cell{flex:1}
+#connection{display:inline-flex;align-items:center;gap:5px}
+#admin-open{padding:0 6px;white-space:nowrap}
+.admin-body{padding:12px}
+.admin-body form:not([hidden]){display:grid;gap:10px}
+.admin-body input:not([type=checkbox]){width:100%;font:inherit;padding:4px;background:#fff;border:1px solid #79869b}
+.rule-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rule-fields input{margin-top:3px}
+.admin-body input[type=checkbox]{vertical-align:middle;margin:0 4px 0 0}
+.admin-body p{margin:0}
+.admin-actions{display:flex;justify-content:flex-end;gap:8px}
+#admin-logout{margin-right:auto}
+#admin-message:not(:empty){margin-top:9px}
+@media(max-width:420px){footer .size{display:none}}
 #connection i{width:8px;height:8px;background:#c68731;border:1px solid #785a2c}
 #connection.live i{background:#52aa55;border-color:#387039}
 .coords{min-width:90px}

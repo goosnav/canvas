@@ -28,8 +28,14 @@ Wrangler publishes the static site, Worker, and SQLite-backed Durable Object tog
 
 One named Durable Object serializes placements for the whole site. It stores changed rows and each active cooldown in SQLite, then broadcasts each saved pixel over hibernating WebSockets. Reconnecting clients receive a fresh snapshot. The starter artwork and palette indices define the initial board and should remain stable across deployments.
 
-Visitors draw anonymously. The server permits seven changed pixels per browser profile in a 27-second window. Tabs in the same profile share an allowance through a first-party cookie. Visitors who block cookies use the public IP allowance. The first change starts the window, and all seven slots refill together at expiry. Selecting the existing color costs no turn.
+Visitors draw anonymously. By default the server permits seven changed pixels per browser profile in a 27-second window. Tabs in the same profile share an allowance through a first-party cookie. Visitors who block cookies use the public IP allowance. The first change starts the window, and all seven slots refill together at expiry. Selecting the existing color costs no turn.
 
-To switch every visitor back to the shared public IP limit, set `PIXEL_RATE_LIMIT` to `ip` in the Worker's Variables and Secrets settings or in `wrangler.jsonc`, then deploy. Set it to `browser` to restore browser allowances. Keep the value in `wrangler.jsonc` in sync with any dashboard change for future Wrangler deploys. Both modes use the same board.
+## Admin controls
+
+On the Worker serving the canvas, open **Settings → Variables and Secrets → Add**, select **Secret**, and name it `CANVAS_ADMIN_KEY`. Set the value to a long, randomly generated password dedicated to Canvas and deploy the secret. For local development use the same name in an ignored `.dev.vars` file. Public drawing works with the secret unset.
+
+Click **Log in** beside **Live** and enter the secret. Set pixels per turn (1–1000), seconds per turn (1–3600), and whether browsers on the same public IP share a countdown. Shared IP mode also groups devices behind the same public address. Save to apply the rules to connected editors immediately. A changed rule starts a fresh allowance for everyone and preserves the artwork. Saving identical values preserves active countdowns.
+
+Rules persist in the board's SQLite storage. Before the first change, `PIXEL_RATE_LIMIT` supplies the initial mode. The admin key stays in tab memory until logout or reload. Rotating or removing the Worker secret revokes the previous key.
 
 Workers Free supports this storage and WebSocket configuration. Traffic above the account's free allowances can temporarily interrupt service. See [Cloudflare's Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/).
