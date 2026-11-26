@@ -35,6 +35,7 @@
       <button id="pencil" aria-pressed="true"><span class="icon pencil"></span>Pencil</button>
       <button id="hand" aria-pressed="false"><span class="icon hand"></span>Pan</button>
     </div>
+    <button id="single-click" aria-pressed="false" title="Place one pixel on press with Pencil">Single click</button>
     <div class="group grid-group"><button id="grid" aria-pressed="true"><span class="grid-icon"></span>Grid</button></div>
     <div class="group">
       <button id="save" disabled><span class="floppy-icon" aria-hidden="true"></span><span>Save PNG</span></button>
@@ -44,7 +45,7 @@
     <div class="ruler-origin" aria-hidden="true">⌖</div>
     <canvas id="top-ruler" class="ruler" aria-hidden="true"></canvas>
     <canvas id="left-ruler" class="ruler" aria-hidden="true"></canvas>
-    <canvas id="surface" tabindex="0" aria-label="Pixel canvas. Double-click or double-tap a pixel to paint. Use arrow keys to select and Enter to paint.">Enable JavaScript to edit the shared canvas.</canvas>
+    <canvas id="surface" tabindex="0" aria-label="Pixel canvas. Use arrow keys to select and Enter to paint.">Enable JavaScript to edit the shared canvas.</canvas>
     <aside class="navigator" aria-label="Canvas navigator">
       <details id="map-details" open>
         <summary>Navigator</summary>
@@ -73,7 +74,7 @@
 <dialog id="guide">
   <form method="dialog">
     <div class="titlebar"><b>Canvas help</b><button aria-label="Close help" class="title-button">×</button></div>
-    <div class="guide-body"><p>Choose a color, then double-click or double-tap a pixel to paint it. Everyone sees your edit. <span id="rule-help">The first placement starts the timer. All placements refill together.</span></p>
+    <div class="guide-body"><p>Choose a color, then double-click or double-tap a pixel to paint it. Turn on <b>Single click</b> to paint as soon as you press. Use <b>Pan</b> to move without painting. <span id="rule-help">The first placement starts the timer. All placements refill together.</span></p>
     <p>Drag to pan. Drag the Navigator thumbnail to move around the board. Scroll, pinch, or use the slider to zoom. <b>Fit</b> shows all nine million pixels.</p>
     <p>With the canvas focused, use the arrow keys to select a pixel and Enter to place it.</p><button class="standard">OK</button></div>
   </form>

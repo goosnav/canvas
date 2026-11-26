@@ -13,6 +13,7 @@ const rgb = palette.map(([, hex]) => [1, 3, 5].map(i => parseInt(hex.slice(i, i 
 const center = { x: SIZE / 2, y: SIZE / 2 };
 let width = 1, height = 1, scale = 1, frame = 0, fitted = false;
 let selected = null, hover = null, grid = true, pencil = true, ink = 3;
+export let singleClick = false;
 let moving = false, lastPoint, startPoint;
 const contacts = new Map();
 let lastTap = null, mousePair = false, revision = 0;
@@ -176,6 +177,13 @@ function mode(isPencil) {
 }
 document.querySelector('#pencil').onclick = () => mode(true);
 document.querySelector('#hand').onclick = () => mode(false);
+document.querySelector('#single-click').onclick = event => {
+  singleClick = !singleClick;
+  event.currentTarget.setAttribute('aria-pressed', singleClick);
+  if (singleClick) mode(true);
+  resetTaps();
+  changed();
+};
 document.querySelector('#grid').onclick = e => {
   grid = !grid; e.currentTarget.setAttribute('aria-pressed', grid); invalidate();
 };
@@ -202,6 +210,12 @@ surface.addEventListener('pointerdown', event => {
   contacts.set(event.pointerId, point(event));
   startPoint = lastPoint = gesture();
   moving = contacts.size > 1 || !pencil || event.button === 1;
+  if (singleClick && !moving && event.isPrimary) {
+    selected = cellAt(startPoint);
+    changed();
+    invalidate();
+    if (selected) viewEvents.dispatchEvent(new Event('place'));
+  }
 });
 surface.addEventListener('pointermove', event => {
   const p = point(event);
@@ -218,7 +232,7 @@ surface.addEventListener('pointermove', event => {
 });
 function release(event, commit) {
   if (!contacts.has(event.pointerId)) return;
-  if (commit && !moving && pencil) {
+  if (commit && !moving && pencil && !singleClick) {
     const p = point(event);
     selected = cellAt(p);
     const previous = lastTap;
@@ -251,7 +265,7 @@ document.addEventListener('pointerdown', event => {
   if (event.target !== surface) resetTaps();
 });
 surface.addEventListener('dblclick', event => {
-  if (mousePair && pencil && event.button === 0) viewEvents.dispatchEvent(new Event('place'));
+  if (!singleClick && mousePair && pencil && event.button === 0) viewEvents.dispatchEvent(new Event('place'));
   resetTaps();
 });
 surface.addEventListener('pointerup', e => release(e, true));

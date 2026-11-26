@@ -1,12 +1,12 @@
 import { browserId, palette, PIXELS_PER_TURN, COOLDOWN } from './board.js';
-import { canvasPNG, chosen, sameColor, loadSnapshot, setPixel, setInk, viewEvents } from './view.js';
+import { canvasPNG, chosen, sameColor, loadSnapshot, setPixel, setInk, singleClick, viewEvents } from './view.js';
 
 const $ = selector => document.querySelector(selector);
-const placementHint = matchMedia('(pointer: coarse)').matches ? 'Double-tap a pixel' : 'Double-click a pixel';
+const doubleClickHint = matchMedia('(pointer: coarse)').matches ? 'Double-tap a pixel' : 'Double-click a pixel';
 const place = $('#place'), hint = $('#hint'), connection = $('#connection');
 const save = $('#save');
 const saveLabel = save.lastElementChild;
-let ink = 3, live = false, deadline = 0, pending = false, retry = 500;
+let ink = 3, live = false, deadline = 0, pending = 0, retry = 500;
 let saving = false;
 let rules = { pixels: PIXELS_PER_TURN, seconds: COOLDOWN / 1000 };
 let available = rules.pixels;
@@ -33,7 +33,8 @@ function update() {
   const seconds = Math.max(0, Math.ceil((deadline - performance.now()) / 1000));
   if (!seconds) available = rules.pixels;
   const waiting = available === 0;
-  place.disabled = !live || pending || waiting || !chosen() || sameColor();
+  place.disabled = !live || pending >= available || (!singleClick && pending > 0) || !chosen() || sameColor();
+  const placementHint = singleClick ? 'Press a pixel' : doubleClickHint;
   place.textContent = pending ? 'Placing…' : waiting ? 'Wait ' + seconds + 's' : 'Place pixel';
   hint.textContent = !live ? '' : !chosen() ? placementHint : sameColor() ? 'Choose another color' : palette[ink][0];
   clearTimeout(tick);
@@ -83,17 +84,20 @@ function connect() {
         case 'quota':
         case 'limit':
           available = event.remaining; deadline = performance.now() + event.wait;
-          if (event.type === 'limit') { pending = false; clearTimeout(responseTimer); }
-          break;
+          if (event.type === 'quota') break;
+          // A refused placement also acknowledges one request.
         case 'placed':
-        case 'same': pending = false; clearTimeout(responseTimer); break;
+        case 'same':
+          pending = Math.max(0, pending - 1);
+          if (!pending) clearTimeout(responseTimer);
+          break;
       }
       update();
     } catch { ws.close(4000, 'Resync'); }
   };
   ws.onclose = () => {
     if (ws !== socket) return;
-    pending = false; clearTimeout(responseTimer); setLive(false, 'Reconnecting…');
+    pending = 0; clearTimeout(responseTimer); setLive(false, 'Reconnecting…');
     retryTimer = setTimeout(connect, retry + Math.random() * 250);
     retry = Math.min(12000, retry * 2);
   };
@@ -101,8 +105,9 @@ function connect() {
 }
 function placePixel() {
   if (place.disabled || socket.readyState !== WebSocket.OPEN) return;
-  pending = true; update();
+  pending++; update();
   socket.send(JSON.stringify({ ...chosen(), color: ink }));
+  clearTimeout(responseTimer);
   responseTimer = setTimeout(() => socket.close(4000, 'Refresh placement'), 8000);
 }
 place.onclick = placePixel;

@@ -20,8 +20,8 @@ h1{margin:0;font:bold 11px/1.45 "Pixel Tahoma",Tahoma,Verdana,sans-serif;text-sh
 .tools,.palette-bar{display:flex;align-items:center;gap:9px;padding:7px 10px;border-top:1px solid white;border-bottom:1px solid var(--edge)}
 .group,.colors,.placement{display:flex;align-items:center;gap:3px}
 .group+.group{border-left:1px solid #c5c2b4;padding-left:10px}
-.tools{padding:3px 5px;background:linear-gradient(#fbfbf9,#f1efe5 60%,#e5e2d3)}
-.tools button{height:29px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:0 8px;border:1px solid transparent;border-radius:2px;background:transparent}
+.tools{flex-wrap:wrap;padding:3px 5px;background:linear-gradient(#fbfbf9,#f1efe5 60%,#e5e2d3)}
+.tools button{white-space:nowrap;height:29px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:0 8px;border:1px solid transparent;border-radius:2px;background:transparent}
 .tools button:hover{border-color:#b9a77e;background:#fff4d2}
 .tools button[aria-pressed=true]{background:#dfdfd2;border-color:#9b9b8d;box-shadow:inset 1px 1px #c1bfb0,inset -1px -1px #fff}
 .icon{width:18px;height:18px;background:center / contain no-repeat}
