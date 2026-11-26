@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a5ae6">
+  <meta name="description" content="A million shared pixels. Pick a color and leave your mark on the Goosnav canvas.">
+  <title>Goosnav Canvas</title>
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+<main class="window">
+  <header class="titlebar">
+    <img src="/favicon.svg" width="22" height="22" alt="">
+    <h1>Goosnav Canvas</h1>
+    <button id="help" class="title-button" aria-label="Canvas help" title="Canvas help">?</button>
+    <img class="brand" src="/mark.png" width="25" height="25" alt="Goosnav">
+  </header>
+  <div class="tools">
+    <div class="group modes" role="group" aria-label="Canvas tool">
+      <button id="pencil" aria-pressed="true"><span class="icon pencil"></span>Pencil</button>
+      <button id="hand" aria-pressed="false"><span class="icon hand"></span>Pan</button>
+    </div>
+    <div class="group grid-group"><button id="grid" aria-pressed="true"><span class="grid-icon"></span>Grid</button></div>
+    <div class="group zoom" role="group" aria-label="Zoom controls">
+      <button id="minus" aria-label="Zoom out" title="Zoom out">−</button><output id="zoom-value" aria-label="Zoom"></output><button id="plus" aria-label="Zoom in" title="Zoom in">+</button>
+      <button id="fit" title="Show the whole canvas">Fit</button>
+    </div>
+  </div>
+  <section class="workspace" aria-label="Shared drawing surface">
+    <div class="ruler-origin" aria-hidden="true">⌖</div>
+    <canvas id="top-ruler" class="ruler" aria-hidden="true"></canvas>
+    <canvas id="left-ruler" class="ruler" aria-hidden="true"></canvas>
+    <canvas id="surface" tabindex="0" aria-label="Pixel canvas. Select a cell with the pointer or arrow keys. Press Enter to place the chosen color.">Enable JavaScript to edit the shared canvas.</canvas>
+  </section>
+  <div class="palette-bar">
+    <div class="colors">
+      <div class="current"><span id="sample"></span></div>
+      <div id="palette" role="group" aria-label="Choose a pixel color"></div>
+    </div>
+    <div class="placement"><span id="hint">Select a pixel</span><button id="place" disabled>Place pixel</button></div>
+  </div>
+  <footer><span id="connection" role="status"><i></i><span>Connecting…</span></span><span class="coords" id="coords">—, —</span><span class="size">1000 × 1000</span><span class="turn">1 pixel / 30s</span></footer>
+</main>
+<dialog id="guide">
+  <form method="dialog">
+    <div class="titlebar"><b>Canvas help</b><button aria-label="Close help" class="title-button">×</button></div>
+    <div class="guide-body"><p>Choose a color, select a pixel, then press <b>Place pixel</b>. Everyone sees your edit. You get one turn every 30 seconds per internet address.</p>
+    <p>Drag to pan. Scroll or pinch to zoom. <b>Fit</b> shows all one million pixels.</p>
+    <p>With the canvas focused, use the arrow keys to select a pixel and Enter to place it.</p><button class="standard">OK</button></div>
+  </form>
+</dialog>
+</body>
+</html>
