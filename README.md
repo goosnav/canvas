@@ -34,7 +34,7 @@ Visitors draw anonymously. By default the server permits seven changed pixels pe
 
 On the Worker serving the canvas, open **Settings → Variables and Secrets → Add**, select **Secret**, and name it `CANVAS_ADMIN_KEY`. Set the value to a long, randomly generated password dedicated to Canvas and deploy the secret. For local development use the same name in an ignored `.dev.vars` file. Public drawing works with the secret unset.
 
-Click **Log in** beside **Live** and enter the secret. Set pixels per turn (1–1000), seconds per turn (1–3600), and whether browsers on the same public IP share a countdown. Shared IP mode also groups devices behind the same public address. Save to apply the rules to connected editors immediately. A changed rule starts a fresh allowance for everyone and preserves the artwork. Saving identical values preserves active countdowns.
+Click **Admin** beside **Live** and enter the secret. Set pixels per turn (1–1000), seconds per turn (1–3600), and whether browsers on the same public IP share a countdown. Shared IP mode also groups devices behind the same public address. Save to apply the rules to connected editors immediately. A changed rule starts a fresh allowance for everyone and preserves the artwork. Saving identical values preserves active countdowns.
 
 Rules persist in the board's SQLite storage. Before the first change, `PIXEL_RATE_LIMIT` supplies the initial mode. The admin key stays in tab memory until logout or reload. Rotating or removing the Worker secret revokes the previous key.
 

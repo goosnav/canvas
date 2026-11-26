@@ -9,7 +9,6 @@ let key = '';
 function showLogin() {
   key = '';
   keyField.value = '';
-  open.textContent = 'Log in';
   login.hidden = false;
   settings.hidden = true;
 }
@@ -34,7 +33,8 @@ function fill(rules) {
   settings.elements.shared.checked = rules.mode === 'ip';
 }
 
-open.onclick = () => {
+open.onclick = event => {
+  event.preventDefault();
   message.textContent = '';
   dialog.showModal();
   if (!key) keyField.focus();
@@ -66,7 +66,6 @@ dialog.addEventListener('submit', async event => {
       fill(rules);
       login.hidden = true;
       settings.hidden = false;
-      open.textContent = 'Settings';
       settings.elements.pixels.focus();
     } else {
       fill(await requestSettings(key, {

@@ -75,7 +75,8 @@ footer{display:flex;align-items:center;color:#393b35;padding:1px 4px 2px}
 footer>span{display:flex;align-items:center;gap:6px;height:100%;padding:0 9px;border-top:1px solid #c3c1b4;border-left:1px solid #c3c1b4;border-right:1px solid white}
 .status-cell{flex:1}
 #connection{display:inline-flex;align-items:center;gap:5px}
-#admin-open{padding:0 6px;white-space:nowrap}
+#admin-open{color:#5c5b52;text-decoration:none}
+#admin-open:hover,#admin-open:focus-visible{text-decoration:underline}
 .admin-body{padding:12px}
 .admin-body form:not([hidden]){display:grid;gap:10px}
 .admin-body input:not([type=checkbox]){width:100%;font:inherit;padding:4px;background:#fff;border:1px solid #79869b}
