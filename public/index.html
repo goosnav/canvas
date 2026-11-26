@@ -32,20 +32,22 @@
   </header>
   <div class="tools">
     <div class="group" role="group" aria-label="Pencil tool">
-      <button id="pencil" aria-pressed="true"><span class="icon pencil"></span>Pencil</button>
+      <button id="pencil" aria-pressed="true"><span class="icon pencil" aria-hidden="true"></span><span class="tool-label">Pencil</span></button>
       <label class="placement-switch" title="Place one pixel on press with Pencil">
-        <input id="single-click" type="checkbox" role="switch" autocomplete="off">Single click
+        <input id="single-click" type="checkbox" role="switch" autocomplete="off">
+        <span class="switch-icon click-icon" aria-hidden="true"></span><span class="tool-label">Single click</span>
       </label>
     </div>
     <div class="group" role="group" aria-label="Pan tool">
-      <button id="hand" aria-pressed="false"><span class="icon hand"></span>Pan</button>
+      <button id="hand" aria-pressed="false"><span class="icon hand" aria-hidden="true"></span><span class="tool-label">Pan</span></button>
       <label class="placement-switch" title="Keep the canvas position and zoom fixed while painting">
-        <input id="lock-canvas" type="checkbox" role="switch" autocomplete="off">Lock canvas
+        <input id="lock-canvas" type="checkbox" role="switch" autocomplete="off">
+        <span class="switch-icon lock-icon" aria-hidden="true"></span><span class="tool-label">Lock canvas</span>
       </label>
     </div>
-    <div class="group grid-group"><button id="grid" aria-pressed="true"><span class="grid-icon"></span>Grid</button></div>
+    <div class="group grid-group"><button id="grid" aria-pressed="true"><span class="grid-icon" aria-hidden="true"></span><span class="tool-label">Grid</span></button></div>
     <div class="group">
-      <button id="save" disabled><span class="floppy-icon" aria-hidden="true"></span><span>Save PNG</span></button>
+      <button id="save" disabled><span class="floppy-icon" aria-hidden="true"></span><span class="tool-label">Save PNG</span></button>
     </div>
   </div>
   <section class="workspace" aria-label="Shared drawing surface">
