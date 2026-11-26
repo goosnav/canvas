@@ -5,6 +5,7 @@ const $ = selector => document.querySelector(selector);
 const placementHint = matchMedia('(pointer: coarse)').matches ? 'Double-tap a pixel' : 'Double-click a pixel';
 const place = $('#place'), hint = $('#hint'), connection = $('#connection');
 const save = $('#save');
+const saveLabel = save.lastElementChild;
 let ink = 3, live = false, deadline = 0, pending = false, retry = 500;
 let saving = false;
 let available = PIXELS_PER_TURN;
@@ -94,7 +95,7 @@ place.onclick = placePixel;
 save.onclick = async () => {
   saving = true;
   save.disabled = true;
-  save.textContent = 'Saving…';
+  saveLabel.textContent = 'Saving…';
   try {
     const png = await canvasPNG();
     const url = URL.createObjectURL(png);
@@ -105,9 +106,9 @@ save.onclick = async () => {
     download.click();
     download.remove();
     setTimeout(() => URL.revokeObjectURL(url), 30_000);
-    save.textContent = 'Save PNG';
+    saveLabel.textContent = 'Save PNG';
   } catch {
-    save.textContent = 'Retry PNG';
+    saveLabel.textContent = 'Retry PNG';
   } finally {
     saving = false;
     save.disabled = !live;

@@ -23,7 +23,14 @@ h1{margin:0;font:bold 11px/1.45 "Pixel Tahoma",Tahoma,Verdana,sans-serif;text-sh
 .pencil{background-image:url(/cursors/pencil.svg)}
 .hand{background-image:url(/cursors/grab.svg)}
 .grid-icon{width:13px;height:13px;border:1px solid #586776;background-image:repeating-linear-gradient(90deg,transparent 0 3px,#8190a0 3px 4px),repeating-linear-gradient(0deg,transparent 0 3px,#8190a0 3px 4px)}
-.zoom button,.standard,#place{border:1px solid #526478;border-radius:3px;background:linear-gradient(white,#f3f3ed 45%,#e5e4db 85%,#d3cfc1);box-shadow:inset 0 -1px #cbc8bb}
+.zoom button,.standard,#place,#save{border:1px solid #526478;border-radius:3px;background:linear-gradient(white,#f3f3ed 45%,#e5e4db 85%,#d3cfc1);box-shadow:inset 0 -1px #cbc8bb}
+.floppy-icon{position:relative;width:14px;height:14px;flex:none;background:#28518c;clip-path:polygon(0 0,75% 0,100% 25%,100% 100%,0 100%);box-shadow:inset 0 0 0 1px #172943}
+.floppy-icon::before{content:"";position:absolute;top:1px;left:3px;width:7px;height:4px;background:linear-gradient(90deg,#c0c7d0 0 4px,#35465d 4px 6px,#c0c7d0 6px)}
+.floppy-icon::after{content:"";position:absolute;bottom:2px;left:3px;width:8px;height:5px;background:linear-gradient(#fff 0 2px,#a3b7d4 2px 3px,#fff 3px)}
+#save:enabled:hover{box-shadow:inset 0 0 0 2px #ffd273}
+#save:enabled:active{background:#dfdfd2;box-shadow:inset 1px 1px #a6a69b}
+#save:disabled{color:#696b62;border-color:#a6a69b}
+#save:disabled .floppy-icon{opacity:.6}
 .navigator{position:absolute;bottom:12px;right:12px;width:184px;padding:7px;background:var(--face);border:1px solid #97978b;border-radius:3px;box-shadow:0 1px 3px #0003;user-select:none}
 .navigator summary{padding:2px 0 5px;font-weight:bold;color:#324b69;cursor:pointer}
 .map{position:relative;aspect-ratio:1;background:white;outline:1px solid #99988c;overflow:hidden;touch-action:none;cursor:url(/cursors/grab.svg) 15 12,grab}
